@@ -74,4 +74,5 @@ documentation in:
 * https://github.com/ahpohl/xiaomi_lywsd03mmc
 * https://github.com/JsBergbau/MiTemperature2
 * https://github.com/lcsfelix/reading-xiaomi-temp
+* https://tasmota.github.io/docs/Bluetooth/
 * https://github.com/DazWilkin/gomijia2
