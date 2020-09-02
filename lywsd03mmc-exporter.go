@@ -1,6 +1,6 @@
 // lywsd03mmc-exporter - a Prometheus exporter for the LYWSD03MMC BLE thermometer
 
-// Copyright (C) 2015-2020 Leah Neukirchen <leah@vuxu.org>
+// Copyright (C) 2020 Leah Neukirchen <leah@vuxu.org>
 // Licensed under the terms of the MIT license, see LICENSE.
 
 package main
