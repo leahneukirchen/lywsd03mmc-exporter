@@ -58,8 +58,8 @@ This mode sends measurements every 10 seconds.
 
 ### Polling mode
 
-This is yet to be implemented.
-It requires an active connection to the device.
+This requires an active connection to the device.
+Pass the MAC addresses of the devices as arguments to lywsd03mmc-exporter.
 
 ## Copying
 
