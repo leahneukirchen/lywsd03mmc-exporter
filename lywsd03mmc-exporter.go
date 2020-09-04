@@ -107,6 +107,7 @@ var XiaomiIncUUID = ble.UUID16(0xfe95)
 
 const ExpiryAtc = 2.5 * 10 * time.Second
 const ExpiryStock = 2.5 * 10 * time.Minute
+const ExpiryConn = 2.5 * 10 * time.Second
 
 var expirers = make(map[string]*time.Timer)
 var expirersLock sync.Mutex
@@ -312,7 +313,7 @@ func decodeStockCharacteristic(mac string) func(req []byte) {
 		hum := float64(req[2])
 		batv := float64(int(binary.LittleEndian.Uint16(req[3:5]))) / 1000.0
 
-		bump(mac, ExpiryAtc)
+		bump(mac, ExpiryConn)
 
 		logTemperature(mac, temp)
 		logHumidity(mac, hum)
@@ -323,6 +324,7 @@ func decodeStockCharacteristic(mac string) func(req []byte) {
 func decodeAtcTemp(mac string) func(req []byte) {
 	return func(req []byte) {
 		temp := float64(binary.LittleEndian.Uint16(req[0:2])) / 10.0
+		bump(mac, ExpiryConn)
 		logTemperature(mac, temp)
 	}
 }
@@ -330,6 +332,7 @@ func decodeAtcTemp(mac string) func(req []byte) {
 func decodeAtcHumidity(mac string) func(req []byte) {
 	return func(req []byte) {
 		hum := float64(binary.LittleEndian.Uint16(req[0:2])) / 100.0
+		bump(mac, ExpiryConn)
 		logHumidity(mac, hum)
 	}
 }
@@ -337,6 +340,7 @@ func decodeAtcHumidity(mac string) func(req []byte) {
 func decodeAtcBattery(mac string) func(req []byte) {
 	return func(req []byte) {
 		batp := float64(req[0])
+		bump(mac, ExpiryConn)
 		logBatteryPercent(mac, batp)
 	}
 }
@@ -355,6 +359,8 @@ func pollData(mac string) {
 		log.Fatal("oops: ", err)
 	}
 
+	// code for stock hardware
+
 	clientCharacteristicConfiguration := ble.MustParse("00002902-0000-1000-8000-00805f9b34fb")
 	if c := profile.FindCharacteristic(ble.NewCharacteristic(clientCharacteristicConfiguration)); c != nil {
 		b := []byte{0x01, 0x00}
@@ -369,6 +375,8 @@ func pollData(mac string) {
 			log.Print(err)
 		}
 	}
+
+	// code for custom hardware
 
 	batteryServiceBatteryLevel := ble.UUID16(0x2a19)
 	if c := profile.FindCharacteristic(ble.NewCharacteristic(batteryServiceBatteryLevel)); c != nil {
@@ -396,7 +404,6 @@ func pollData(mac string) {
 }
 
 func main() {
-
 	config := flag.String("k", "", "load keys from `file`")
 	listenAddr := flag.String("l", ":9265", "listen on `addr`")
 	deviceID := flag.Int("i", 0, "use device hci`N`")
