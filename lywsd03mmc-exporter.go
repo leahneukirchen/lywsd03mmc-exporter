@@ -216,6 +216,14 @@ func decryptData(data []byte, frameMac string, rssi int) {
 	rssiGauge.WithLabelValues(Sensor, mac).Set(float64(rssi))
 }
 
+func decodeSign(i uint16) int {
+	if i < 32768 {
+		return int(i)
+	} else {
+		return int(i) - 65536
+	}
+}
+
 func registerData(data []byte, frameMac string, rssi int) {
 	if len(data) != 13 {
 		return
@@ -227,7 +235,7 @@ func registerData(data []byte, frameMac string, rssi int) {
 		return
 	}
 
-	temp := float64(binary.BigEndian.Uint16(data[6:8])) / 10.0
+	temp := float64(decodeSign(binary.BigEndian.Uint16(data[6:8]))) / 10.0
 	hum := float64(data[8])
 	batp := float64(data[9])
 	batv := float64(binary.BigEndian.Uint16(data[10:12])) / 1000.0
@@ -323,7 +331,7 @@ func decodeStockCharacteristic(mac string) func(req []byte) {
 
 func decodeAtcTemp(mac string) func(req []byte) {
 	return func(req []byte) {
-		temp := float64(binary.LittleEndian.Uint16(req[0:2])) / 10.0
+		temp := float64(decodeSign(binary.LittleEndian.Uint16(req[0:2]))) / 10.0
 		bump(mac, ExpiryConn)
 		logTemperature(mac, temp)
 	}
