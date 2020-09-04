@@ -199,20 +199,17 @@ func decryptData(data []byte, frameMac string, rssi int) {
 
 	if dst[0] == 0x04 { // temperature
 		temp := float64(binary.LittleEndian.Uint16(dst[3:5])) / 10.0
-		log.Printf("%s thermometer_temperature_celsius %.1f\n", mac, temp)
-		tempGauge.WithLabelValues(Sensor, mac).Set(temp)
+		logTemperature(mac, temp)
 
 	}
 	if dst[0] == 0x06 { // humidity
 		hum := float64(binary.LittleEndian.Uint16(dst[3:5])) / 10.0
-		log.Printf("%s thermometer_humidity_ratio %.0f\n", mac, hum)
-		humGauge.WithLabelValues(Sensor, mac).Set(hum)
+		logHumidity(mac, hum)
 	}
 	if dst[0] == 0x0A { // battery
 		// XXX always 100%?
-		bat := float64(dst[3])
-		log.Printf("%s thermometer_battery_ratio %.0f\n", mac, bat)
-		battGauge.WithLabelValues(Sensor, mac).Set(bat)
+		batp := float64(dst[3])
+		logBatteryPercent(mac, batp)
 	}
 
 	rssiGauge.WithLabelValues(Sensor, mac).Set(float64(rssi))
@@ -237,18 +234,13 @@ func registerData(data []byte, frameMac string, rssi int) {
 
 	bump(mac, ExpiryAtc)
 
-	tempGauge.WithLabelValues(Sensor, mac).Set(temp)
-	humGauge.WithLabelValues(Sensor, mac).Set(hum)
-	battGauge.WithLabelValues(Sensor, mac).Set(batp)
-	voltGauge.WithLabelValues(Sensor, mac).Set(batv)
+	logTemperature(mac, temp)
+	logHumidity(mac, hum)
+	logBatteryPercent(mac, batp)
+	logVoltage(mac, batv)
+
 	frameGauge.WithLabelValues(Sensor, mac).Set(frame)
 	rssiGauge.WithLabelValues(Sensor, mac).Set(float64(rssi))
-
-	log.Printf("%s thermometer_temperature_celsius %.1f\n", mac, temp)
-	log.Printf("%s thermometer_humidity_ratio %.0f\n", mac, hum)
-	log.Printf("%s thermometer_battery_ratio %.0f\n", mac, batp)
-	log.Printf("%s thermometer_battery_volts %.3f\n", mac, batv)
-	log.Printf("%s thermometer_frame_current %.0f\n", mac, frame)
 }
 
 func advHandler(a ble.Advertisement) {
