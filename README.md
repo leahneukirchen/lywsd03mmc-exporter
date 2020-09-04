@@ -27,12 +27,13 @@ lywsd03mmc-exporter needs to be run as `root` or with CAP_NET_ADMIN.
 
 ### Stock firmware
 
-To use lywsd03mmc-exporter with the stock firmware, you need to
-*activate* your device and extract the *Mi Bindkey*.  You can either
-use the Xiaomi Home software for that (requires an account
-and a HTTPS MITM attack on your phone), or more easily, use
-the [TelinkFlasher](https://atc1441.github.io/TelinkFlasher.html)
-provided by [@atc1441](https://github.com/atc1441).
+To use lywsd03mmc-exporter with the
+[stock firmware](https://github.com/custom-components/sensor.mitemp_bt/files/4022697/d4135e135443ba86e403ecb2af2bf0af_upd_miaomiaoce.sensor_ht.t2.zip),
+you need to *activate* your device and extract the *Mi Bindkey*.  You
+can either use the Xiaomi Home software for that (requires an account
+and a HTTPS MITM attack on your phone), or more easily, use the
+[TelinkFlasher](https://atc1441.github.io/TelinkFlasher.html) provided
+by [@atc1441](https://github.com/atc1441).
 
 You will need to create a keyfile in a format like this,
 and use `-k file`:
@@ -72,6 +73,7 @@ documentation in:
 * https://github.com/atc1441/ATC_MiThermometer
 * https://github.com/danielkucera/mi-standardauth
 * https://github.com/ahpohl/xiaomi_lywsd03mmc
+* https://github.com/custom-components/sensor.mitemp_bt
 * https://github.com/JsBergbau/MiTemperature2
 * https://github.com/lcsfelix/reading-xiaomi-temp
 * https://tasmota.github.io/docs/Bluetooth/
