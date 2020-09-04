@@ -52,6 +52,8 @@ is really empty.
 
 @atc1441 wrote a [custom firmware](https://github.com/atc1441/ATC_MiThermometer)
 for the LYWSD03MMC.  It sends data unencrypted in beacons.
+Negative temperatures are supported.
+
 You can flash it easily with above TelinkFlasher.
 
 This mode sends measurements every 10 seconds.
@@ -60,6 +62,7 @@ This mode sends measurements every 10 seconds.
 
 This requires an active connection to the device.
 Pass the MAC addresses of the devices as arguments to lywsd03mmc-exporter.
+This is currently limited to one device (bug in go-ble?).
 
 ## Copying
 
