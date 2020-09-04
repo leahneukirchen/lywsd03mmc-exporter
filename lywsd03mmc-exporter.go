@@ -23,6 +23,7 @@ import (
 	"github.com/go-ble/ble/examples/lib/dev"
 
 	"github.com/prometheus/client_golang/prometheus"
+        "github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"crypto/aes"
@@ -30,7 +31,7 @@ import (
 )
 
 var (
-	tempGauge = prometheus.NewGaugeVec(
+	tempGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "temperature_celsius",
@@ -41,7 +42,7 @@ var (
 			"mac",
 		},
 	)
-	humGauge = prometheus.NewGaugeVec(
+	humGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "humidity_ratio",
@@ -52,7 +53,7 @@ var (
 			"mac",
 		},
 	)
-	battGauge = prometheus.NewGaugeVec(
+	battGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "battery_ratio",
@@ -63,7 +64,7 @@ var (
 			"mac",
 		},
 	)
-	voltGauge = prometheus.NewGaugeVec(
+	voltGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "battery_volts",
@@ -74,7 +75,7 @@ var (
 			"mac",
 		},
 	)
-	frameGauge = prometheus.NewGaugeVec(
+	frameGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "frame_current",
@@ -85,7 +86,7 @@ var (
 			"mac",
 		},
 	)
-	rssiGauge = prometheus.NewGaugeVec(
+	rssiGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "thermometer",
 			Name:      "rssi_dbm",
@@ -300,13 +301,6 @@ func main() {
 	}
 
 	ble.SetDefaultDevice(device)
-
-	prometheus.MustRegister(tempGauge)
-	prometheus.MustRegister(humGauge)
-	prometheus.MustRegister(battGauge)
-	prometheus.MustRegister(voltGauge)
-	prometheus.MustRegister(frameGauge)
-	prometheus.MustRegister(rssiGauge)
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
