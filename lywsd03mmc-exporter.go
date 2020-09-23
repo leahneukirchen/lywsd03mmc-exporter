@@ -163,37 +163,44 @@ func decryptData(data []byte, frameMac string, rssi int) {
 		return
 	}
 
-	key, ok := decryptionKeys[mac]
-	if !ok {
-		log.Printf("no key for MAC %s, skipped\n", mac)
-		return
-	}
+	var dst []byte
 
-	ciphertext := []byte{}
-	ciphertext = append(ciphertext, data[11:len(data)-7]...) // payload
-	ciphertext = append(ciphertext, data[len(data)-4:]...)   // token
+	if data[12] == 0x10 {
+		// unencrypted
+		dst = data[11:]
+	} else {
+		key, ok := decryptionKeys[mac]
+		if !ok {
+			log.Printf("no key for MAC %s, skipped\n", mac)
+			return
+		}
 
-	nonce := []byte{}
-	nonce = append(nonce, data[5:11]...)                    // reverse MAC
-	nonce = append(nonce, data[2:5]...)                     // sensor type
-	nonce = append(nonce, data[len(data)-7:len(data)-4]...) // counter
+		ciphertext := []byte{}
+		ciphertext = append(ciphertext, data[11:len(data)-7]...) // payload
+		ciphertext = append(ciphertext, data[len(data)-4:]...)   // token
 
-	aes, err := aes.NewCipher(key[:])
-	if err != nil {
-		log.Print("aes.NewCipher: ", err)
-		return
-	}
-	ccm, err := aesccm.NewCCM(aes, 4, 12)
-	if err != nil {
-		log.Fatal("aesccm.NewCCM: ", err)
-	}
+		nonce := []byte{}
+		nonce = append(nonce, data[5:11]...)                    // reverse MAC
+		nonce = append(nonce, data[2:5]...)                     // sensor type
+		nonce = append(nonce, data[len(data)-7:len(data)-4]...) // counter
 
-	var Aad = []byte{0x11}
+		aes, err := aes.NewCipher(key[:])
+		if err != nil {
+			log.Print("aes.NewCipher: ", err)
+			return
+		}
+		ccm, err := aesccm.NewCCM(aes, 4, 12)
+		if err != nil {
+			log.Fatal("aesccm.NewCCM: ", err)
+		}
 
-	dst, err := ccm.Open([]byte{}, nonce, ciphertext, Aad)
-	if err != nil {
-		log.Print("couldn't decrypt: ", err)
-		return
+		var Aad = []byte{0x11}
+
+		dst, err = ccm.Open([]byte{}, nonce, ciphertext, Aad)
+		if err != nil {
+			log.Print("couldn't decrypt: ", err)
+			return
+		}
 	}
 
 	bump(mac, ExpiryStock)
@@ -211,6 +218,12 @@ func decryptData(data []byte, frameMac string, rssi int) {
 		// XXX always 100%?
 		batp := float64(dst[3])
 		logBatteryPercent(mac, batp)
+	}
+	if dst[0] == 0x0d && dst[2] == 0x04 { // temperature + humidity
+		temp := float64(binary.LittleEndian.Uint16(dst[3:5])) / 10.0
+		logTemperature(mac, temp)
+		hum := float64(binary.LittleEndian.Uint16(dst[5:7])) / 10.0
+		logHumidity(mac, hum)
 	}
 
 	rssiGauge.WithLabelValues(Sensor, mac).Set(float64(rssi))
