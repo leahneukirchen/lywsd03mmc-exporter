@@ -27,7 +27,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"crypto/aes"
-	"github.com/pschlump/AesCCM"
+
+	aesccm "github.com/pschlump/AesCCM"
 )
 
 var (
@@ -238,31 +239,79 @@ func decodeSign(i uint16) int {
 }
 
 func registerData(data []byte, frameMac string, rssi int) {
-	if len(data) != 13 {
+	var sd sensorData
+	var err error
+	switch len(data) {
+	case 13:
+		sd, err = decodeATCData(data, frameMac)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+	case 15:
+		sd, err = decodePVVXData(data, frameMac)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+	default:
+		log.Printf("unknown data length %d\n", len(data))
 		return
 	}
 
+	bump(sd.mac, ExpiryAtc)
+
+	logTemperature(sd.mac, sd.temp)
+	logHumidity(sd.mac, sd.hum)
+	logBatteryPercent(sd.mac, sd.batp)
+	logVoltage(sd.mac, sd.batv)
+
+	frameGauge.WithLabelValues(Sensor, sd.mac).Set(sd.frame)
+	rssiGauge.WithLabelValues(Sensor, sd.mac).Set(float64(rssi))
+}
+
+type sensorData struct {
+	mac   string
+	temp  float64
+	hum   float64
+	batp  float64
+	batv  float64
+	frame float64
+}
+
+func decodeATCData(data []byte, frameMac string) (sensorData, error) {
 	mac := fmt.Sprintf("%X", data[0:6])
-
 	if mac != frameMac {
-		return
+		return sensorData{}, fmt.Errorf("MAC mismatch %s != %s", mac, frameMac)
 	}
 
-	temp := float64(decodeSign(binary.BigEndian.Uint16(data[6:8]))) / 10.0
-	hum := float64(data[8])
-	batp := float64(data[9])
-	batv := float64(binary.BigEndian.Uint16(data[10:12])) / 1000.0
-	frame := float64(data[12])
+	return sensorData{
+		mac:   mac,
+		temp:  float64(decodeSign(binary.BigEndian.Uint16(data[6:8]))) / 10.0,
+		hum:   float64(data[8]),
+		batp:  float64(data[9]),
+		batv:  float64(binary.BigEndian.Uint16(data[10:12])) / 1000.0,
+		frame: float64(data[12]),
+	}, nil
+}
 
-	bump(mac, ExpiryAtc)
-
-	logTemperature(mac, temp)
-	logHumidity(mac, hum)
-	logBatteryPercent(mac, batp)
-	logVoltage(mac, batv)
-
-	frameGauge.WithLabelValues(Sensor, mac).Set(frame)
-	rssiGauge.WithLabelValues(Sensor, mac).Set(float64(rssi))
+func decodePVVXData(data []byte, frameMac string) (sensorData, error) {
+	var mac string
+	for i := 5; i >= 0; i-- {
+		mac += fmt.Sprintf("%02X", data[i])
+	}
+	if mac != frameMac {
+		return sensorData{}, fmt.Errorf("MAC mismatch %s != %s", mac, frameMac)
+	}
+	return sensorData{
+		mac:   mac,
+		temp:  float64(decodeSign(binary.LittleEndian.Uint16(data[6:8]))) / 100.0,
+		hum:   float64(decodeSign(binary.LittleEndian.Uint16(data[8:10]))) / 100.0,
+		batv:  float64(binary.LittleEndian.Uint16(data[10:12])) / 1000.0,
+		batp:  float64(data[12]),
+		frame: float64(data[13]),
+	}, nil
+	// flags := float64(data[14])
 }
 
 func advHandler(a ble.Advertisement) {
@@ -271,9 +320,10 @@ func advHandler(a ble.Advertisement) {
 	for _, sd := range a.ServiceData() {
 		if sd.UUID.Equal(EnvironmentalSensingUUID) {
 			registerData(sd.Data, mac, a.RSSI())
-		}
-		if sd.UUID.Equal(XiaomiIncUUID) {
+		} else if sd.UUID.Equal(XiaomiIncUUID) {
 			decryptData(sd.Data, mac, a.RSSI())
+		} else {
+			log.Printf("unknown service data: %s\n", sd.UUID)
 		}
 	}
 }
