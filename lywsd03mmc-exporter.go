@@ -267,6 +267,9 @@ type sensorData struct {
 }
 
 func decodeATCData(data []byte, frameMac string) (sensorData, error) {
+	if len(data) != 13 {
+		return sensorData{}, fmt.Errorf("invalid data length %d", len(data))
+	}
 	mac := fmt.Sprintf("%X", data[0:6])
 	if mac != frameMac {
 		return sensorData{}, fmt.Errorf("MAC mismatch %s != %s", mac, frameMac)
@@ -283,6 +286,9 @@ func decodeATCData(data []byte, frameMac string) (sensorData, error) {
 }
 
 func decodePVVXData(data []byte, frameMac string) (sensorData, error) {
+	if len(data) != 15 {
+		return sensorData{}, fmt.Errorf("invalid data length %d", len(data))
+	}
 	var mac string
 	for i := 5; i >= 0; i-- {
 		mac += fmt.Sprintf("%02X", data[i])
@@ -291,6 +297,7 @@ func decodePVVXData(data []byte, frameMac string) (sensorData, error) {
 		return sensorData{}, fmt.Errorf("MAC mismatch %s != %s", mac, frameMac)
 	}
 	return sensorData{
+		mac:   mac,
 		temp:  float64(decodeSign(binary.LittleEndian.Uint16(data[6:8]))) / 100.0,
 		hum:   float64(decodeSign(binary.LittleEndian.Uint16(data[8:10]))) / 100.0,
 		batv:  float64(binary.LittleEndian.Uint16(data[10:12])) / 1000.0,
@@ -507,6 +514,6 @@ func main() {
 	}
 	err = ble.Scan(ctx, true, advHandler, telinkVendorFilter)
 	if err != nil {
-		log.Fatal("oops: %s", err)
+		log.Fatalf("oops: %s", err)
 	}
 }
